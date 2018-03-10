@@ -1,0 +1,149 @@
+---
+title: "ggplot2 notes and practice"
+author: "Atreya"
+date: "27 February 2018"
+output: rmarkdown::github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Grammar of Graphics
+
+Just like sentences, plots also have a grammar. Consider the sentence below for instance
+
+*The quick brown fox jumps over the lazy dog*
+
+Each word is an important element and has a role to play in this sentence
+
+* *The*- Article
+* *quick brown*- Adjective
+* *fox*- Noun
+* *jumps*- Verb
+* *over*- Preposition
+* *the* - Article
+* *lazy* - Adjective
+* *dog* - Noun
+
+In a similar fashion, even a plotting framework consists of certain essential elements that make a plot meaningful as a whole
+
+**Element**  |**Descrption**
+-------------|-------------------------------------------------
+*Data*       |The dataset being plotted
+*Aesthetics* |The scales onto which we *map* our data
+*Geometries* |The visual elements used for data
+*Facets*     |Plotting small multiples
+*Statistics* |Representations of our data to aid unverstanding
+*Coordinates*|The space on which the data will be plotted
+*Theme*      | All non-data ink
+
+**Element**  |**Example**
+-------------|------------------------------------------------------------------------------
+*Data*       |Variables of interest
+*Aesthetics* |x-axis, y-axis, color, fill, size, labels, alpha, shape, line width, line type
+*Geometries* |point, line, histogram, bar, boxplot
+*Facets*     |columns, rows
+*Statistics* |binning, smoothing, descriptive, inferential
+*Coordinates*|cartesian, fixed, polar, limits
+*Theme*      |non-data ink
+
+Load the standard `mtcars` dataset and check its structure
+```{r warning=FALSE,message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+data("mtcars")
+str(mtcars)
+head(mtcars)
+```
+
+Explanation of some variables names :
+
+`drat` - Rear axle ratio, `disp`-Engine Displacement(in), `qsec`- 1/4 mile time, `vs`- V/S engine, `am`- Transmission (0=automatic,1=manual), `gear`- number of forward gears, `carb`- number of carburetors
+
+Some variables need to be converted to factors before we go ahead with plotting
+```{r}
+mtcars %>% select(cyl) %>% n_distinct()
+mtcars %>% select(vs) %>% n_distinct()
+mtcars %>% select(am) %>% n_distinct()
+mtcars %>% select(gear) %>% n_distinct()
+mtcars %>% select(carb) %>% n_distinct()
+fact_cols <- c("cyl","am","gear","carb","vs")
+mtcars[fact_cols]<-lapply(mtcars[fact_cols], factor) 
+```
+
+### Horse power vs MPG :Layer by layer build of the plot
+#### Step 1: Data and aesthetics elements
+```{r}
+p <- ggplot(mtcars,aes(x=mpg,y=hp,col=disp))
+p+geom_point(alpha=0.5)
+```
+
+#### Step2: Facets
+```{r}
+p <- ggplot(mtcars,aes(x=mpg,y=hp,col=disp))
+p+geom_point(alpha=0.5)+
+  facet_grid(.~cyl)
+```
+
+####Step3: Statistics layer
+```{r}
+p <- ggplot(mtcars,aes(x=mpg,y=hp,col=disp))
+p+geom_point(alpha=0.5)+
+  facet_grid(.~cyl)+
+  stat_smooth(method="lm",se=FALSE,col="red")
+```
+
+#### Step 4: Coordinates layer
+```{r}
+p <- ggplot(mtcars,aes(x=mpg,y=hp,col=disp))
+p+geom_point(alpha=0.5)+
+  facet_grid(.~cyl)+
+  stat_smooth(method="lm",se=FALSE,col="red")+
+  scale_x_continuous("Miles per gallon")+
+  scale_y_continuous("Horse power")
+```
+
+#### Step 5: Theme layer
+```{r}
+p <- ggplot(mtcars,aes(x=mpg,y=hp,col=disp))
+p+geom_point(alpha=0.5)+
+  facet_grid(.~cyl)+
+  stat_smooth(method="lm",se=FALSE,col="red")+
+  scale_x_continuous("Miles per gallon",breaks = c(10,20,30))+
+  labs(y="Horse power",col="Engine displacement")+
+  theme(panel.background = element_blank(),
+        plot.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.grid = element_blank())
+```
+
+#### Bar plots
+```{r}
+bar_1 <-ggplot(mtcars,aes(x=gear,fill=am))+
+        geom_bar(position = "dodge",alpha=0.8)+
+        labs(x="Number of cylinders",y="Number")+
+        scale_fill_manual("Transmission",labels=c("Automatic","Manual"),values=c("red","blue"))+
+        theme(panel.background = element_rect(fill = "white"),panel.grid = element_blank())
+
+bar_2 <-ggplot(mtcars,aes(x=cyl,fill=am))+
+        geom_bar(position = "dodge",alpha=0.8)+
+        labs(x="Number of cylinders",y="Number")+
+        scale_fill_manual("Transmission",labels=c("Automatic","Manual"),values=c("red","blue"))+
+        theme(panel.background = element_rect(fill = "white"),panel.grid = element_blank())
+grid.arrange(bar_1,bar_2,ncol=2)
+```
+
+#### Histogram
+```{r message=FALSE}
+ggplot(mtcars,aes(x=mpg,fill=cyl))+
+geom_histogram(binwidth = 1)+
+labs(x="Miles per gallon",y="Number",fill="Number of cylinders")+
+theme(panel.background=element_rect(fill="white"),panel.grid=element_blank())
+
+ggplot(mtcars,aes(x=mpg,col=cyl))+
+geom_freqpoly(lwd=1)+
+labs(x="Miles per gallon",y="Number",col="Number of cylinders")+
+theme(panel.background=element_rect(fill="white"),panel.grid=element_blank())
+```
